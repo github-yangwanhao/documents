@@ -67,7 +67,7 @@
    
        @Override
        public String call() throws Exception {
-           System.out.println("call()方法");
+           System.out.println("重写call()方法");
            return "hello world";
        }
    }
@@ -175,7 +175,7 @@ start方法是开启一个新的线程，在新的线程里调用run方法。
    }
    ```
 
-5. **TIMED_WAITING**：期限等待，处于这种状态的线程也不会被CPU分配资源，但是它们可以在规定的时间结束后被系统自动唤醒。
+5. **TIMED_WAITING**：有期限等待，处于这种状态的线程也不会被CPU分配资源，但是它们可以在规定的时间结束后被系统自动唤醒。
 
    ```java
    public class ThreadTest {
@@ -308,7 +308,7 @@ start方法是开启一个新的线程，在新的线程里调用run方法。
 
 3. interrupted()：**是Thread类的静态方法**。和isInterrupted()的功能相似，它也是一个查询当前线程的中断标记的方法，返回值boolean类型，**但是它在查询中断标记后会把当前线程的中断标记置为false**！
 
-   以下代码演示了一个demo，在主线程执行interrupt()方法，给子线程设置中断标记true，在子线程的run()方法里，会先使用Thread.interrupted()查询中断标记，如果为true则输出一下，然后再使用isInterrupted()判断中断标记，如果为true则结束循环。由于Thread.interrupted()虽然会有一次查询到中断标记为true，但是查询后该方法又会把中断标记置为false，所以下边的isInterrupted()拿到的结果其实永远是false，所以改程序会输出一句true然后又一直死循环运行。
+   以下代码演示了一个demo，在主线程执行interrupt()方法，给子线程设置中断标记true，在子线程的run()方法里，会先使用Thread.interrupted()查询中断标记，如果为true则输出一下，然后再使用isInterrupted()判断中断标记，如果为true则结束循环。由于Thread.interrupted()虽然会有一次查询到中断标记为true，但是查询后该方法又会把中断标记置为false，所以下边的isInterrupted()拿到的结果其实永远是false，所以这段代码会输出一句true然后又一直死循环运行。
 
    ```java
    public class ThreadTest {
@@ -429,7 +429,7 @@ notifyAll()会唤醒在该对象监视器上等待的所有线程，所有被唤
 
 1. 所属类不同：sleep()方法是属于Thread类的，wait()方法是Object类的方法。
 2. 方法类型不同：sleep()方法是静态方法，wait()方法是实例方法。
-3. 使用方式不同：sleep()方法可以在任意地方使用Thread.sleep(long millions)来执行；wait()方法则要求对象必须先拿到锁才能执行，否则会抛出java.lang.IllegalMonitorStateException异常。
+3. 使用方式不同：sleep()方法可以在任意地方使用Thread.sleep(long millions)来执行；wait()方法则要求对象使用synchronized必须先拿到锁才能执行，否则会抛出java.lang.IllegalMonitorStateException异常。
 4. 唤醒方式不同：sleep()方法必须要传入一个时间，该线程会在指定的时间内暂停执行，让出CPU给其他线程，但是依然保持监控状态，当指定的时间到了又会自动恢复运行状态。而wait()方法可以传入一个时间，也可以不传任何参数，如果传入时间也可以在指定时间到了后自动恢复运行，如果没有传入时间则只能通过notify()或者notifyAll()方法唤醒。
 5. 释放锁资源不同：在调用sleep()方法的过程中，线程不会释放对象锁。wait()方法会让线程会放弃对象锁，进入等待此对象的等待锁定池，只有针对此对象调用 notify()方法后本线程才进入对象锁定池准备，获取对象锁进入运行状态。
 6. 线程状态不同：sleep()方法会让线程进入TIMED_WAITING状态；wait()如果有时间参数也会进入TIMED_WAITING状态，没有时间参数则会进入WAITING状态。
@@ -599,7 +599,43 @@ public class ThreadLocal<T> {
 
 简单一点说就是：一个Thread中只有一个ThreadLocalMap，一个ThreadLocalMap中可以有多个ThreadLocal对象，其中一个ThreadLocal对象对应一个ThreadLocalMap中的一个Entry（也就是说：一个Thread可以依附有多个ThreadLocal对象）。
 
+## 同一线程调用两次start方法会怎样
 
+会抛出IllegalThreadStateException异常。
+
+![image-20240418171545447](images/image-20240418171545447.png)
+
+## 产⽣死锁的四个必要条件
+
+- 互斥条件：同一资源同一时间内只能被一个线程持有
+- 占有且等待：线程持有资源后在等待其他资源时不会释放已持有的资源
+- 不可抢占：资源一旦被线程持有，不可以再被其他线程抢夺
+- 循环等待：多个线程互相持有对方需要的资源且等待对方已持有的资源
+
+## 怎么检测一个线程是否持有对象监视器
+
+Thread类提供了一个holdsLock(Object obj)方法，当且仅当对象obj的监视器被某条线程持有的时候才会返回 true，注意这是一个static方法，这意味着"某条线程"指的是当前线程。
+
+```java
+public class Test {
+
+    public static void main(String[] args) {
+        Object o = new Object();
+        // false
+        System.out.println(Thread.holdsLock(o));
+        synchronized (o) {
+	        // true
+            System.out.println(Thread.holdsLock(o));
+        }
+    }
+}
+```
+
+## 一个线程如果出现了运行时异常会怎么样
+
+如果这个异常没有被捕获的话，这个线程就停止执行了。
+
+另外重要的一点是：如果这个线程持有某个某个对象的监视器，那么这个对象监视器会被立即释放。
 
 # 二、线程池知识点
 
@@ -609,7 +645,7 @@ public class ThreadLocal<T> {
 - 提高响应速度。当任务到达时，任务可以不需要等到线程创建就能立即执行。
 - 提高线程的可管理性。线程是稀缺资源，如果无限制的创建，不仅会消耗系统资源，还会降低系统的稳定性，使用线程池可以进行统一的分配，调优和监控。
 
-## 有几种线程池
+## Java中常用的几种线程池
 
 - new ThreadPoolExecutor()：直接新建线程池。
 - Executors.newFixedThreadPool()：创建固定大小的线程池，每次提交一个任务就创建一个线程，直到线程达到线程池的最大大小。
@@ -621,9 +657,9 @@ public class ThreadLocal<T> {
 
 ## Java线程池的核心参数
 
-- 核心线程数corePoolSize：也就是核心线程数，这些线程创建后不会销毁，而是一种常驻线程。如果此时线程池中的核心线程数小于corePoolSize，即时此时线程池中的线程在空闲，新提交的任务也会创建一个新的核心线程来执行。
-- 最大线程数maximumPoolSize：如果任务较多，将核心线程消耗完了，且等待队列也已经放满了，还无法满足需求，就会创建新的线程来工作，但是线程池内线程总数不会超过最大线程数。
-- 活跃时间keepAliveTime、unit：非核心线程，也就是核心线程数之外创建的线程，在执行完任务且空闲一定时间后就会被销毁，可以通过这两个字段来控制这个空闲时间。
+- 核心线程数corePoolSize：也就是核心线程的数量，这些线程创建后不会销毁，而是一种常驻线程。如果线程池中的当前核心线程数小于corePoolSize，即时此时线程池中已有的核心线程在空闲，新提交的任务也会创建一个新的核心线程来执行。
+- 最大线程数maximumPoolSize：如果任务较多，将核心线程消耗完了，且等待队列也已经放满了，还无法满足需求，就会创建新的非核心线程来工作，但是线程池内线程总数不会超过最大线程数。
+- 活跃时间keepAliveTime、unit：非核心线程在执行完任务且空闲一定时间后就会被销毁，可以通过这两个字段来控制这个空闲时间。
 - 等待队列workQueue：核心线程消耗完了后，新的任务不会立刻创建非核心线程，而是先放入等待队列中，如果等待队列也满了才会创建非核心线程。一般有以下几种等待队列：
   - `ArrayBlockingQueue`：是一个基于数组结构的有界阻塞队列，此队列按 FIFO(先进先出)原则对元素进行排序。
   - `LinkedBlockingQueue`：一个基于链表结构的阻塞队列，此队列按FIFO(先进先出)排序元 素，吞吐量通常要高于ArrayBlockingQueue。
@@ -646,6 +682,14 @@ public class ThreadLocal<T> {
 3. 当阻塞队列也满了之后，那么将会继续创建(maximumPoolSize-corePoolSize)个数量的线程来 执行任务，如果任务处理完成，maximumPoolSize-corePoolSize额外创建的线程等待 keepAliveTime之后被自动销毁
 4. 如果达到maximumPoolSize，阻塞队列还是满的状态，那么将根据不同的拒绝策略对应处理
 
+## 线程池都有哪些状态
+
+- RUNNING：这是最正常的状态，接受新的任务，处理等待队列中的任务。
+- SHUTDOWN：不接受新的任务提交，但是会继续处理等待队列中的任务。
+- STOP：不接受新的任务提交，不再处理等待队列中的任务，中断正在执行任务的线程。
+- TIDYING：所有的任务都销毁了，workCount 为 0，线程池的状态在转换为 TIDYING 状态时，会执行 钩子方法 terminated()。
+- TERMINATED：terminated()方法结束后，线程池的状态就会变成这个。
+
 ## 线程池线程复用原理
 
 线程池将线程和任务进行解耦，摆脱了像new Thread()这种一个线程必须对应一个任务的限制。
@@ -658,7 +702,11 @@ public class ThreadLocal<T> {
 
 所属接口不同：execute()方法定义在Executor接口中,而submit()方法定义在ExecutorService接口中。
 
+## 如果线程池中的⼀个线程运⾏时出现了异常，会发⽣什么
 
+如果提交任务的时候使用了submit()，则返回的Feature⾥会存有异常信息；
+
+如果是execute()则会打印出异常栈，但是不会给其他线程造成影响，之后线程池会删除该线程，会新增加⼀个worker。
 
 # 三、原子操作相关知识点
 
@@ -882,7 +930,9 @@ AbstractQueuedSynchronizer，抽象队列同步器，是Java并发包中的一�
 
 Abstract说明这是一个抽象类，需要创建其子类对象才能使用；Queued说明这个类是基于队列这样的数据结构实现的；Synchronizer是同步器，也就是用于实现线程同步的对象。
 
-首先AQS提供了一个由volatile修饰，并且采用CAS修改的int类型的变量state;其次AQS维护了一个双向链表。
+首先AQS提供了一个由volatile修饰，并且采用CAS修改的int类型的变量state;哪个线程基于CAS操作将state从0修改为1，则代表这个线程拿到了锁。
+
+其次AQS维护了一个双向链表，链表由一个个的Node节点构成。
 
 AQS有两种工作模式：
 
@@ -891,6 +941,617 @@ AQS有两种工作模式：
 
 ##  AQS的工作流程
 
+线程A基于CAS操作将state从0修改为1，代表线程A拿到了锁。
+
+线程B尝试基于CAS操作将state从0修改为1，但是由于state现在已经是1了，所以获取锁失败。这时线程B需要去排队，将自己封装为Node对象，然后将Node放入双向队列进行排队(双向队列会默认存在一个伪节点head)，并将前一个节点的waitStatus改为-1(waitStatus改为-1代表该节点后边还有挂起的节点)。
+
+![image-20240421152614550](images/image-20240421152614550.png)
+
 
 
 ![image-20240409093029137](images/image-20240409093029137.png)
+
+# 六、JUC类
+
+## CopyOnWriteArrayList
+
+基于写时复制原理实现的线程安全数组集合，对集合元素的增删改都是基于原数组复制出一个新的数组来操作，操作完成后再把全局数组变量指向新的数组。其内部自定义的COWIterator类，则是在创建COWIterator对象时就把当前数组的值复制一份副本到COWIterator内部的Object[] snapshot变量，所以其他线程对全局数组的写操作不会对当前COWIterator遍历的对象产生影响。以下简略摘录了CopyOnWriteArrayList的部分代码：
+
+```java
+public class CopyOnWriteArrayList<E>
+    implements List<E>, RandomAccess, Cloneable, java.io.Serializable {
+	// 用于修改数据时加锁
+    final transient ReentrantLock lock = new ReentrantLock();
+	// 定义数组变量
+    private transient volatile Object[] array;
+    
+    // 覆盖某位置上元素的方法
+    public E set(int index, E newValue) {
+        lock.lock();
+        try {
+            // 读取数组中的旧元素
+            E oldValue = this.array[index];           
+            if (oldValue != newValue) {
+                // 复制出一个新数组然后把新值赋值到新数组的对应位置，然后再把array变量指向新数组
+                int len = this.array.length;
+                Object[] newArray = Arrays.copyOf(this.array, len);
+                newArray[index] = newValue;
+                this.array = newArray;
+            }
+            return oldValue;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+	// 添加元素方法
+    public boolean add(E e) {
+        lock.lock();
+        try {
+            int len = this.array.length;
+            // 复制一个新的数组并且把新元素放在复制出来的新数组的最后面
+            Object[] newArray = Arrays.copyOf(this.array, len + 1);
+            newArray[len] = e;
+            // 把新数组赋值给array变量
+            this.array = newArray;
+            return true;
+        } finally {
+            lock.unlock();
+        }
+    }
+    
+    // 删除元素
+    public E remove(int index) {
+        lock.lock();
+        try {
+            int len = this.array.length;
+            E oldValue = this.array[index];
+            int numMoved = len - index - 1;
+            if (numMoved == 0)
+                this.array = Arrays.copyOf(this.array, len - 1);
+            else {
+                Object[] newArray = new Object[len - 1];
+                System.arraycopy(this.array, 0, newArray, 0, index);
+                System.arraycopy(this.array, index + 1, newArray, index, numMoved);
+                this.array = newArray;
+            }
+            return oldValue;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+	// 创建迭代器对象
+    public Iterator<E> iterator() {
+        return new COWIterator<E>(this.array, 0);
+    }
+    
+	// CopyOnWriteArrayList自定义的迭代器
+    static final class COWIterator<E> implements ListIterator<E> {
+        // 迭代器内部的数据快照
+        private final Object[] snapshot;
+        // 迭代器的下标
+        private int cursor;
+		// 把生成迭代器时的array传入迭代器的数据快照，后边array再被更新当前迭代器也只会读取当前快照
+        private COWIterator(Object[] elements, int initialCursor) {
+            snapshot = elements;
+            cursor = initialCursor;
+        }
+		// 可以看到next()方法和previous()方法都是基于COWIterator内部的快照数据进行读取的
+        public E next() {
+            return (E) snapshot[cursor++];
+        }
+        public E previous() {
+            return (E) snapshot[--cursor];
+        }
+    }
+    
+}
+```
+
+## CountDownLatch
+
+CountDown，可以理解为倒数/倒计时；Latch，翻译火来就是门栓。所以CountDownLatch可以理解为一个倒计时门栓。它是一个同步辅助类，它允许一个或者多个线程等待，直到在其他线程中执行的一组操作完成为止。
+
+特点：
+
+①无法重复计数，一个CountDownLatch对象只能使用一次，开始倒计数后不能回拨。
+
+②计数器的数字一般来说一定要等于线程数量，如果小于很可能导致主线程提前唤醒，如果大于则可能导致主线程不被唤醒(这段话的前提是每个线程只会调用一次countDown()方法，但是一个线程内是可以多次调用countDown方法的，这个程序内一定要控制好)。
+
+主要方法：
+
+await()：使调用该方法的线程进入无限期等待。
+
+countDown()：计数器减一。
+
+在使用CountDownLatch之前，我们先写一个小demo，使用100个线程对一个AtomicInteger的变量进行自增至100，先看看案例以及问题。
+
+```java
+public class Test {
+    public static void main(String[] args) throws InterruptedException {
+        AtomicInteger atomicInteger = new AtomicInteger(0);
+        Runnable runnable = () -> {
+            atomicInteger.incrementAndGet();
+        };
+        for (int i = 0; i < 100; i++) {
+            new Thread(runnable).start();
+        }
+        System.out.println(atomicInteger.get());
+    }
+}
+```
+
+输出的结果令人惊讶，几乎每次输出的结果都不一样。原因是在执行System.out.println(atomicInteger.get());的时候，有些线程可能还没有抢到资源执行完成，所以几乎每次的输出结果都是小于100的。
+
+下面我们使用CountDownLatch对上面的方法进行改造。
+
+```java
+public class Test {
+    public static void main(String[] args) throws InterruptedException {
+        AtomicInteger atomicInteger = new AtomicInteger(0);
+        // 定义一个计数器为100的CountDownLatch对象
+        CountDownLatch countDownLatch = new CountDownLatch(100);
+        Runnable runnable = () -> {
+            atomicInteger.incrementAndGet();
+            // 每个线程执行完成后进行计数器-1
+            countDownLatch.countDown();
+        };
+        for (int i = 0; i < 100; i++) {
+            new Thread(runnable).start();
+        }
+        // 所有的子线程都启动了，让主线程在这里等待，直到计数器归零
+        countDownLatch.await();
+        // 改造后的程序可以发现无论运行多少次，结果都是100
+        System.out.println(atomicInteger.get());
+    }
+}
+```
+
+**CountDownLatch的源码分析**：
+
+```java
+public class CountDownLatch {
+    
+    private final Sync sync;
+    
+    // 构造方法，传入计数值
+    public CountDownLatch(int count) {
+        if (count < 0) throw new IllegalArgumentException("count < 0");
+        this.sync = new Sync(count);
+    }
+    
+    // 定义的内部同步类，继承自AQS
+    private static final class Sync extends AbstractQueuedSynchronizer {
+
+        Sync(int count) {
+            // AQS父类的setState方法，将count值赋给父类的state变量
+            setState(count);
+        }
+		// 返回父类AQS的state变量的值
+        int getCount() {
+            return getState();
+        }
+        /**
+         * 重写父类AQS的tryAcquireShared方法，在父类中是没有具体的实现逻辑的
+         * 如果state的值是0就返回1，大于0就返回-1
+         */
+        protected int tryAcquireShared(int acquires) {
+            return (getState() == 0) ? 1 : -1;
+        }
+		
+        /**
+         * 重写父类AQS的tryReleaseShared方法，在父类中是没有具体的实现逻辑的
+         * 直到state变量自减为0的时候才返回true
+         */
+        protected boolean tryReleaseShared(int releases) {
+            for (;;) {
+                int c = getState();
+                if (c == 0)
+                    return false;
+                int nextc = c-1;
+                if (compareAndSetState(c, nextc))
+                    return nextc == 0;
+            }
+        }
+    }
+
+    /**
+     * 如果tryAcquireShared(arg)<0，也就是state的值大于1，则使用LockSupport.park(this)阻塞线程
+     */
+    public void await() throws InterruptedException {
+        sync.acquireSharedInterruptibly(1);
+    }
+
+    /**
+     * 使用LockSupport.parkNanos(this, nanosTimeout)阻塞线程
+     */
+    public boolean await(long timeout, TimeUnit unit)
+        throws InterruptedException {
+        return sync.tryAcquireSharedNanos(1, unit.toNanos(timeout));
+    }
+
+    /**
+     * 将父类AQS的当前state变量的值减一
+     * 直到state变量自减为0的时候，使用LockSupport.unpark(s.thread)解除线程阻塞
+     */
+    public void countDown() {
+        sync.releaseShared(1);
+    }
+    
+    /** 获取父类AQS的当前state变量的值 */
+    public long getCount() {
+        return sync.getCount();
+    }
+}
+```
+
+## CyclicBarrier
+
+意思是循环的屏障，它是一个同步辅助类，它允许一组线程全部互相等待以到达一个公共的障碍点。
+
+特点：释放等待的线程后可以重新使用。
+
+使用场景：执行一组固定大小，彼此偶尔需要互相等待的线程。
+
+
+
+```java
+public class CyclicBarrier {
+    /**
+     * Each use of the barrier is represented as a generation instance.
+     * The generation changes whenever the barrier is tripped, or
+     * is reset. There can be many generations associated with threads
+     * using the barrier - due to the non-deterministic way the lock
+     * may be allocated to waiting threads - but only one of these
+     * can be active at a time (the one to which {@code count} applies)
+     * and all the rest are either broken or tripped.
+     * There need not be an active generation if there has been a break
+     * but no subsequent reset.
+     */
+    private static class Generation {
+        boolean broken = false;
+    }
+
+    /** The lock for guarding barrier entry */
+    private final ReentrantLock lock = new ReentrantLock();
+    /** Condition to wait on until tripped */
+    private final Condition trip = lock.newCondition();
+    /** The number of parties */
+    private final int parties;
+    /* The command to run when tripped */
+    private final Runnable barrierCommand;
+    /** The current generation */
+    private Generation generation = new Generation();
+
+    /**
+     * Number of parties still waiting. Counts down from parties to 0
+     * on each generation.  It is reset to parties on each new
+     * generation or when broken.
+     */
+    private int count;
+
+    /**
+     * Updates state on barrier trip and wakes up everyone.
+     * Called only while holding lock.
+     */
+    private void nextGeneration() {
+        // signal completion of last generation
+        trip.signalAll();
+        // set up next generation
+        count = parties;
+        generation = new Generation();
+    }
+
+    /**
+     * Sets current barrier generation as broken and wakes up everyone.
+     * Called only while holding lock.
+     */
+    private void breakBarrier() {
+        generation.broken = true;
+        count = parties;
+        trip.signalAll();
+    }
+
+    /**
+     * Main barrier code, covering the various policies.
+     */
+    private int dowait(boolean timed, long nanos)
+        throws InterruptedException, BrokenBarrierException,
+               TimeoutException {
+        final ReentrantLock lock = this.lock;
+        lock.lock();
+        try {
+            final Generation g = generation;
+
+            if (g.broken)
+                throw new BrokenBarrierException();
+
+            if (Thread.interrupted()) {
+                breakBarrier();
+                throw new InterruptedException();
+            }
+
+            int index = --count;
+            if (index == 0) {  // tripped
+                boolean ranAction = false;
+                try {
+                    final Runnable command = barrierCommand;
+                    if (command != null)
+                        command.run();
+                    ranAction = true;
+                    nextGeneration();
+                    return 0;
+                } finally {
+                    if (!ranAction)
+                        breakBarrier();
+                }
+            }
+
+            // loop until tripped, broken, interrupted, or timed out
+            for (;;) {
+                try {
+                    if (!timed)
+                        trip.await();
+                    else if (nanos > 0L)
+                        nanos = trip.awaitNanos(nanos);
+                } catch (InterruptedException ie) {
+                    if (g == generation && ! g.broken) {
+                        breakBarrier();
+                        throw ie;
+                    } else {
+                        // We're about to finish waiting even if we had not
+                        // been interrupted, so this interrupt is deemed to
+                        // "belong" to subsequent execution.
+                        Thread.currentThread().interrupt();
+                    }
+                }
+
+                if (g.broken)
+                    throw new BrokenBarrierException();
+
+                if (g != generation)
+                    return index;
+
+                if (timed && nanos <= 0L) {
+                    breakBarrier();
+                    throw new TimeoutException();
+                }
+            }
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    /**
+     * Creates a new {@code CyclicBarrier} that will trip when the
+     * given number of parties (threads) are waiting upon it, and which
+     * will execute the given barrier action when the barrier is tripped,
+     * performed by the last thread entering the barrier.
+     *
+     * @param parties the number of threads that must invoke {@link #await}
+     *        before the barrier is tripped
+     * @param barrierAction the command to execute when the barrier is
+     *        tripped, or {@code null} if there is no action
+     * @throws IllegalArgumentException if {@code parties} is less than 1
+     */
+    public CyclicBarrier(int parties, Runnable barrierAction) {
+        if (parties <= 0) throw new IllegalArgumentException();
+        this.parties = parties;
+        this.count = parties;
+        this.barrierCommand = barrierAction;
+    }
+
+    /**
+     * Creates a new {@code CyclicBarrier} that will trip when the
+     * given number of parties (threads) are waiting upon it, and
+     * does not perform a predefined action when the barrier is tripped.
+     *
+     * @param parties the number of threads that must invoke {@link #await}
+     *        before the barrier is tripped
+     * @throws IllegalArgumentException if {@code parties} is less than 1
+     */
+    public CyclicBarrier(int parties) {
+        this(parties, null);
+    }
+
+    /**
+     * Returns the number of parties required to trip this barrier.
+     *
+     * @return the number of parties required to trip this barrier
+     */
+    public int getParties() {
+        return parties;
+    }
+
+    /**
+     * Waits until all {@linkplain #getParties parties} have invoked
+     * {@code await} on this barrier.
+     *
+     * <p>If the current thread is not the last to arrive then it is
+     * disabled for thread scheduling purposes and lies dormant until
+     * one of the following things happens:
+     * <ul>
+     * <li>The last thread arrives; or
+     * <li>Some other thread {@linkplain Thread#interrupt interrupts}
+     * the current thread; or
+     * <li>Some other thread {@linkplain Thread#interrupt interrupts}
+     * one of the other waiting threads; or
+     * <li>Some other thread times out while waiting for barrier; or
+     * <li>Some other thread invokes {@link #reset} on this barrier.
+     * </ul>
+     *
+     * <p>If the current thread:
+     * <ul>
+     * <li>has its interrupted status set on entry to this method; or
+     * <li>is {@linkplain Thread#interrupt interrupted} while waiting
+     * </ul>
+     * then {@link InterruptedException} is thrown and the current thread's
+     * interrupted status is cleared.
+     *
+     * <p>If the barrier is {@link #reset} while any thread is waiting,
+     * or if the barrier {@linkplain #isBroken is broken} when
+     * {@code await} is invoked, or while any thread is waiting, then
+     * {@link BrokenBarrierException} is thrown.
+     *
+     * <p>If any thread is {@linkplain Thread#interrupt interrupted} while waiting,
+     * then all other waiting threads will throw
+     * {@link BrokenBarrierException} and the barrier is placed in the broken
+     * state.
+     *
+     * <p>If the current thread is the last thread to arrive, and a
+     * non-null barrier action was supplied in the constructor, then the
+     * current thread runs the action before allowing the other threads to
+     * continue.
+     * If an exception occurs during the barrier action then that exception
+     * will be propagated in the current thread and the barrier is placed in
+     * the broken state.
+     *
+     * @return the arrival index of the current thread, where index
+     *         {@code getParties() - 1} indicates the first
+     *         to arrive and zero indicates the last to arrive
+     * @throws InterruptedException if the current thread was interrupted
+     *         while waiting
+     * @throws BrokenBarrierException if <em>another</em> thread was
+     *         interrupted or timed out while the current thread was
+     *         waiting, or the barrier was reset, or the barrier was
+     *         broken when {@code await} was called, or the barrier
+     *         action (if present) failed due to an exception
+     */
+    public int await() throws InterruptedException, BrokenBarrierException {
+        try {
+            return dowait(false, 0L);
+        } catch (TimeoutException toe) {
+            throw new Error(toe); // cannot happen
+        }
+    }
+
+    /**
+     * Waits until all {@linkplain #getParties parties} have invoked
+     * {@code await} on this barrier, or the specified waiting time elapses.
+     *
+     * <p>If the current thread is not the last to arrive then it is
+     * disabled for thread scheduling purposes and lies dormant until
+     * one of the following things happens:
+     * <ul>
+     * <li>The last thread arrives; or
+     * <li>The specified timeout elapses; or
+     * <li>Some other thread {@linkplain Thread#interrupt interrupts}
+     * the current thread; or
+     * <li>Some other thread {@linkplain Thread#interrupt interrupts}
+     * one of the other waiting threads; or
+     * <li>Some other thread times out while waiting for barrier; or
+     * <li>Some other thread invokes {@link #reset} on this barrier.
+     * </ul>
+     *
+     * <p>If the current thread:
+     * <ul>
+     * <li>has its interrupted status set on entry to this method; or
+     * <li>is {@linkplain Thread#interrupt interrupted} while waiting
+     * </ul>
+     * then {@link InterruptedException} is thrown and the current thread's
+     * interrupted status is cleared.
+     *
+     * <p>If the specified waiting time elapses then {@link TimeoutException}
+     * is thrown. If the time is less than or equal to zero, the
+     * method will not wait at all.
+     *
+     * <p>If the barrier is {@link #reset} while any thread is waiting,
+     * or if the barrier {@linkplain #isBroken is broken} when
+     * {@code await} is invoked, or while any thread is waiting, then
+     * {@link BrokenBarrierException} is thrown.
+     *
+     * <p>If any thread is {@linkplain Thread#interrupt interrupted} while
+     * waiting, then all other waiting threads will throw {@link
+     * BrokenBarrierException} and the barrier is placed in the broken
+     * state.
+     *
+     * <p>If the current thread is the last thread to arrive, and a
+     * non-null barrier action was supplied in the constructor, then the
+     * current thread runs the action before allowing the other threads to
+     * continue.
+     * If an exception occurs during the barrier action then that exception
+     * will be propagated in the current thread and the barrier is placed in
+     * the broken state.
+     *
+     * @param timeout the time to wait for the barrier
+     * @param unit the time unit of the timeout parameter
+     * @return the arrival index of the current thread, where index
+     *         {@code getParties() - 1} indicates the first
+     *         to arrive and zero indicates the last to arrive
+     * @throws InterruptedException if the current thread was interrupted
+     *         while waiting
+     * @throws TimeoutException if the specified timeout elapses.
+     *         In this case the barrier will be broken.
+     * @throws BrokenBarrierException if <em>another</em> thread was
+     *         interrupted or timed out while the current thread was
+     *         waiting, or the barrier was reset, or the barrier was broken
+     *         when {@code await} was called, or the barrier action (if
+     *         present) failed due to an exception
+     */
+    public int await(long timeout, TimeUnit unit)
+        throws InterruptedException,
+               BrokenBarrierException,
+               TimeoutException {
+        return dowait(true, unit.toNanos(timeout));
+    }
+
+    /**
+     * Queries if this barrier is in a broken state.
+     *
+     * @return {@code true} if one or more parties broke out of this
+     *         barrier due to interruption or timeout since
+     *         construction or the last reset, or a barrier action
+     *         failed due to an exception; {@code false} otherwise.
+     */
+    public boolean isBroken() {
+        final ReentrantLock lock = this.lock;
+        lock.lock();
+        try {
+            return generation.broken;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    /**
+     * Resets the barrier to its initial state.  If any parties are
+     * currently waiting at the barrier, they will return with a
+     * {@link BrokenBarrierException}. Note that resets <em>after</em>
+     * a breakage has occurred for other reasons can be complicated to
+     * carry out; threads need to re-synchronize in some other way,
+     * and choose one to perform the reset.  It may be preferable to
+     * instead create a new barrier for subsequent use.
+     */
+    public void reset() {
+        final ReentrantLock lock = this.lock;
+        lock.lock();
+        try {
+            breakBarrier();   // break the current generation
+            nextGeneration(); // start a new generation
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    /**
+     * Returns the number of parties currently waiting at the barrier.
+     * This method is primarily useful for debugging and assertions.
+     *
+     * @return the number of parties currently blocked in {@link #await}
+     */
+    public int getNumberWaiting() {
+        final ReentrantLock lock = this.lock;
+        lock.lock();
+        try {
+            return parties - count;
+        } finally {
+            lock.unlock();
+        }
+    }
+}
+```
+
+
+
+## ConcurrentHashMap

@@ -10,9 +10,13 @@
 
 - singleton：**默认**，每个容器中只有一个bean的实例，单例的模式由BeanFactory自身来维护。
 - prototype：为每一个bean请求提供一个实例。
-- request：为每一个网络请求创建一个实例，在请求完成以后，bean会失效并被垃圾回收器回收。
+- request：为每一个网络 请求创建一个实例，在请求完成以后，bean会失效并被垃圾回收器回收。
 - session：与request范围类似，确保每个session中有一个bean的实例，在session过期后， bean会随之失效。
 - global-session：全局作用域，global-session和Portlet应用相关。当你的应用部署在Portlet 容器中工作时，它包含很多portlet。如果你想要声明让所有的portlet共用全局的存储变量的话，那么这全局变量需要存储在global-session中。全局作用域与Servlet中的session作用域效果相同。
+
+# Spring中的Bean是线程安全的吗
+
+Spring中的Bean默认是单例模式，Spring框架并没有对单例Bean进行多线程的封装处理。 实际上大部分时候 Spring Bean都是无状态的(比如Dao类)，所有某种程度上来说Bean也是安全的，但如果Bean有状态的话(比如 view model对象)，那就要开发者自己去保证线程安全了，最简单的就是改变Bean的作用域，把“singleton”变更为“prototype”，这样请求Bean相当于new Bean()了，就可以保证线程安全了。有状态就是有数据存储功能，无状态就是不会保存数据。
 
 # Spring Bean的生命周期
 
@@ -58,32 +62,34 @@
 
 AOP，Aspect-Oriented Programming，面向切面编程，能够将那些与业务无关，却为业务模块所共同调用的逻辑或责任（例如事务处理、日志管理、权限控制等）封装起来，便于减少系统的重复代码，降低模块间的耦合度，并有利于未来的可扩展性和可维护性。 
 
-Spring AOP是基于动态代理的，如果要代理的对象实现了某个接口，那么Spring AOP就会使用JDK 动态代理去创建代理对象；而对于没有实现接口的对象，就无法使用JDK动态代理，转而使用CGlib 动态代理生成一个被代理对象的子类来作为代理。
+Spring AOP是基于动态代理的，如果要代理的对象实现了某个接口，那么Spring AOP就会使用JDK动态代理去创建代理对象；而对于没有实现接口的对象，就无法使用JDK动态代理，转而使用CGlib 动态代理生成一个被代理对象的子类来作为代理。
 
-当然也可以使用AspectJ，Spring AOP中已经集成了AspectJ，AspectJ应该算得上是Java生态系统中 最完整的AOP框架了。使用AOP之后我们可以把一些通用功能抽象出来，在需要用到的地方直接使 用即可，这样可以大大简化代码量。我们需要增加新功能也方便，提高了系统的扩展性。日志功 能、事务管理和权限管理等场景都用到了AOP。
+当然也可以使用AspectJ，Spring AOP中已经集成了AspectJ，AspectJ应该算得上是Java生态系统中最完整的AOP框架了。
+
+使用AOP之后我们可以把一些通用功能抽象出来，在需要用到的地方直接使用即可，这样可以大大简化代码量。我们需要增加新功能也方便，提高了系统的扩展性。日志功能、事务管理和权限管理等场景都用到了AOP。
 
 # SpringAOP和AspectJ AOP有什么区别
 
 Spring AOP是属于运行时增强，而AspectJ是编译时增强。
 
-Spring AOP基于代理（Proxying），而 AspectJ基于字节码操作（Bytecode Manipulation）。
+Spring AOP基于代理（Proxying），而AspectJ基于字节码操作（Bytecode Manipulation）。
 
-Spring AOP已经集成了AspectJ，AspectJ应该算得上是Java生态系统中最完整的AOP框架了。 AspectJ相比于Spring AOP功能更加强大，但是Spring AOP相对来说更简单。 如果我们的切面比较少，那么两者性能差异不大。但是，当切面太多的话，最好选择AspectJ，它比 SpringAOP快很多。
+Spring AOP已经集成了AspectJ，AspectJ应该算得上是Java生态系统中最完整的AOP框架了。 AspectJ AOP功能更加强大，但是Spring AOP相对来说更简单。 如果我们的切面比较少，那么两者性能差异不大。但是，当切面太多的话，最好选择AspectJ，它比SpringAOP快很多。
 
 # CGLIB代理和JDK动态代理的区别
 
 - 代理的对象不同：JDK动态代理只支持接口的代理，CGLIB既可以代理接口又可以代理没有实现接口的类，通过继承目标类生成子类的方式来创建代理对象。
-- 实现机制不同：JDK动态代理：使用java.lang.reflect.Proxy类和java.lang.reflect.InvocationHandler接口来创建代理对象，工作通过反射机制完成。CGLIB动态代理：使用底层的字节码技术，通过Enhancer类和MethodInterceptor接口来创建代理对象，工作通过字节码增强技术完成。
+- 实现机制不同：JDK动态代理：使用java.lang.reflect.Proxy类和java.lang.reflect.InvocationHandler接口来创建代理对象，工作通过反射机制完成。CGLIB动态代理：使用底层的字节码技术，通过MethodInterceptor接口和Enhancer类来创建代理对象，工作通过字节码增强技术完成。
 
 # Spring的事务传播机制
 
 | 事务传播机制  |                             解释                             |   外部不存在事务   |                         外部存在事务                         |
 | :-----------: | :----------------------------------------------------------: | :----------------: | :----------------------------------------------------------: |
-|   REQUIRED    | 默认的Spring事物传播级别，若当前存在事务，则加入该事务，若 不存在事务，则新建一个事务 |     开启新事务     |                      融入并使用外部事物                      |
-| REQUIRED_NEW  |  不管外部有没有事务都创建一个新的事务，适合于流水登记等场景  |     开启新事务     |                       开启一个新的事务                       |
-|    NESTED     | 没有事务， 新建一个事务；存在事务，则新建一个事物**嵌套**在外部事务中。外部事物回滚新事物一定回滚，新事物回滚不一定回滚外部事物。 |     开启新事务     | 创建一个新的事务**嵌套**在外部事物中执行，结合数据库的savePoint功能使用。 |
-|   SUPPORTS    |                 支持事务，但是不主动开启事务                 | 以非事务的方式执行 |                         融入外部事物                         |
-|   MANDATORY   |              强制使用事务，不存在事务则抛出异常              |     抛出异常×      |                         融入外部事物                         |
+|   REQUIRED    | 默认的Spring事物传播级别，若当前存在事务，则加入该事务，若 不存在事务，则新建一个事务 |     开启新事务     |                      融入并使用外部事务                      |
+| REQUIRED_NEW  |  不管外部有没有事务都创建一个新的事务，适合于流水登记等场景  |     开启新事务     |                外部事物挂起，开启一个新的事务                |
+|    NESTED     | 没有事务， 新建一个事务；存在事务，则新建一个事务**嵌套**在外部事务中。外部事务回滚新事务一定回滚，新事务回滚不一定回滚外部事务。 |     开启新事务     | 创建一个新的事务**嵌套**在外部事务中执行，结合数据库的savePoint功能使用。 |
+|   SUPPORTS    |                 支持事务，但是不主动开启事务                 | 以非事务的方式执行 |                         融入外部事务                         |
+|   MANDATORY   |              强制使用事务，不存在事务则抛出异常              |     抛出异常×      |                         融入外部事务                         |
 | NOT_SUPPORTED |                不支持事务，以非事务的方式运行                | 以非事务的方式执行 |               挂起外部事物，以非事务的方式执行               |
 |     NEVER     |                不支持事务，存在事务则抛出异常                | 以非事务的方式执行 |                          抛出异常×                           |
 
@@ -121,7 +127,7 @@ Spring通过三级缓存来解决循环依赖的问题，也就是三个Map。
 
 # Spring用到了哪些设计模式
 
-- 简单工厂模式：beanFactory
+- 简单工厂模式：BeanFactory就是简单工厂的提现，用来来创建对象的工厂。
 - 单例模式：默认产生的Spring bean都是单例的
 - 代理模式：AOP
 - 观察者模式：Spring事件发布和监听
@@ -145,7 +151,7 @@ server.tomcat.threads.min-spare = 10
 
 # Spring Boot自动配置
 
-1. 通过@SpringBootConfiguration引入了@EnableAutoConfiguration(负责启动自动配置)
+1. 通过@SpringBootApplication引入了@EnableAutoConfiguration(负责启动自动配置)
 2. @EnableAutoConfiguration引入了@Import(AutoConfigurationImportSelector.class)
 3. Spring容器启动时，加载IOC容器时会解析@Import注解
 4. @Import导入了DeferredImportSelector，它会使SpringBoot的自动配置顺序在最后，方便我们扩展和覆盖
@@ -153,5 +159,65 @@ server.tomcat.threads.min-spare = 10
 6. 过滤出所有AutoConfigurationClass类型的类
 7. 最后通过@Condition排除无效的自动配置类
 
-# 
+# Spring常用注解
 
+- web注解
+  - @Controller：用于标注控制层组件。
+  - @RestController：是`@Controller` 和 `@ResponseBody` 的结合体，返回 JSON 数据时使用。
+  - @RequestMapping：用于映射请求 URL 到具体的方法上，还可以细分为：
+    - @GetMapping：只能用于处理 GET 请求
+    - @PostMapping：只能用于处理 POST 请求
+    - @DeleteMapping：只能用于处理 DELETE 请求
+  - @RequestBody：表示一个方法参数应该绑定到 Web 请求体。
+  - @ResponseBody：直接将返回的数据放入 HTTP 响应正文中，一般用于返回 JSON 数据。
+  - @RequestParam：用于接收请求参数。比如 `@RequestParam(name = "key") String key`，这里的 key 就是请求参数。
+  - @PathVariable：用于接收路径参数，比如 `@RequestMapping(“/hello/{name}”)`，这里的 name 就是路径参数。
+- 容器注解
+  - @Component：标识一个类为 Spring 组件，使其能够被 Spring 容器自动扫描和管理。
+  - @Service：标识一个业务逻辑组件（服务层）。比如 `@Service("userService")`，这里的 userService 就是 Bean 的名称。
+  - @Repository：标识一个数据访问组件（持久层）。
+  - @Autowired：按类型自动注入依赖。
+  - @Configuration：用于定义配置类，可替换 XML 配置文件。
+  - @Bean：代码中手动声明一个spring bean配置，可替换 XML 配置文件。
+  - @Value：用于将 Spring Boot 中 application.properties 配置的属性值赋值给变量。
+- aop注解
+  - @Aspect：用于声明一个切面，可以配合其他注解一起使用
+  - @PointCut：定义切点，指定需要拦截的方法
+  - @Before：在方法执行之前执行。
+  - @After：在方法执行之后执行。
+  - @Around：方法前后均执行。
+  - @AfterReturning：在方法返回后执行。
+  - @AfterThrowing：在方法抛出异常后执行。
+- 事务注解
+  - @Transcational：用于声明一个方法需要事务支持。
+
+
+
+# SpringMVC的执行流程
+
+1. 用户的请求会发送到前端控制器(DispatcherServlet)，前端控制器会请求HandlerMapping查找对应的Handler(根据xml或者注解查找)。
+2. HandlerMapping查找到Handler之后会返回给前端控制器，由前端控制器调用处理器适配器(HandlerAdapter)去执行返回的Handler。
+3. Handler执行完成后会返回ModelAndView给处理器适配器，处理器适配器再向前端控制器返回ModelAndView。
+4. 前端控制器再去请求视图解析器解析接收到的ModelAndView，根据逻辑视图名解析出真正的视图并返回给前端控制器。
+5. 前端控制器进行视图渲染并向用户响应结果。
+
+![img](images/1252413-20190814224157959-1136216229.png)
+
+# 如何在Spring Boot启动的时候运行特定的代码
+
+实现接口`ApplicationRunner`或者`CommandLineRunner`，这两个接口实现方式一样，它们都只提供了一个run方法。
+
+# Spring的主要模块
+
+- Spring Core：框架的最基础部分，提供IOC和依赖注入特性。
+- Spring Context：构建于Core封装包基础上的Context封装包，提供了一种框架式的对象访问方法。
+- Spring AOP：提供了面向切面的编程实现，可以自定义拦截器、切点等。
+- Spring Web：提供了针对Web开发的集成特性，例如文件上传，利用Servlet Listeners进行IOC容器初始化和针对Web的ApplicationContext。
+- Spring Web MVC：Spring中的MVC封装包提供了Web应用的Model-View-Controller(MVC)的实现。
+- Spring Dao：Data Access Object提供了JDBC的抽象层。
+
+# MyBatis二级缓存机制
+
+⼀级缓存是指SqlSession级别的缓存。原理：使用的数据结构是⼀个map，如果两次中间出现commit操作(修改、添加、删除)，本sqlsession中的⼀级缓存区域全部清空。
+
+⼆级缓存是指可以跨SqlSession的缓存，是mapper级别的缓存。原理：是通过CacheExecutor实现的，CacheExecutor其实是Executor的代理对象。
